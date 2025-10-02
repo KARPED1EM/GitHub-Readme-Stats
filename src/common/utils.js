@@ -37,6 +37,7 @@ class CustomError extends Error {
   static GRAPHQL_ERROR = "GRAPHQL_ERROR";
   static GITHUB_REST_API_ERROR = "GITHUB_REST_API_ERROR";
   static WAKATIME_ERROR = "WAKATIME_ERROR";
+  static INVALID_AFFILIATION = "INVALID_AFFILIATION";
 }
 
 /**
@@ -475,6 +476,8 @@ const CONSTANTS = {
   ERROR_CACHE_SECONDS: 10 * MIN,
 };
 
+const OWNER_AFFILIATIONS = ["OWNER", "COLLABORATOR", "ORGANIZATION_MEMBER"];
+
 /**
  * Missing query parameter class.
  */
@@ -585,6 +588,28 @@ const parseEmojis = (str) => {
 };
 
 /**
+ * 解析 ownerAffiliations，默认 ["OWNER"]；大小写不敏感；非法值抛错。
+ * @param {string[]} affiliations
+ * @returns {string[]}
+ * @throws {CustomError}
+ */
+const parseOwnerAffiliations = (affiliations) => {
+  const normalized =
+    affiliations && affiliations.length > 0
+      ? affiliations.map((a) => String(a).toUpperCase())
+      : ["OWNER"];
+
+  const invalid = normalized.some((a) => !OWNER_AFFILIATIONS.includes(a));
+  if (invalid) {
+    throw new CustomError(
+      "Invalid query parameter",
+      CustomError.INVALID_AFFILIATION,
+    );
+  }
+  return normalized;
+};
+
+/**
  * Get diff in minutes between two dates.
  *
  * @param {Date} d1 First date.
@@ -652,4 +677,6 @@ export {
   parseEmojis,
   dateDiff,
   formatBytes,
+  parseOwnerAffiliations,
+  OWNER_AFFILIATIONS,
 };

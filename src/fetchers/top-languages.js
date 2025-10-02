@@ -6,6 +6,7 @@ import {
   MissingParamError,
   request,
   wrapTextMultiline,
+  parseOwnerAffiliations,
 } from "../common/utils.js";
 
 /**
@@ -24,12 +25,15 @@ const fetcher = (variables, token) => {
   return request(
     {
       query: `
-      query userInfo($login: String!) {
+      query userInfo($login: String!, $ownerAffiliations: [RepositoryAffiliation]) {
         user(login: $login) {
-          # fetch only owner repos & not forks
-          repositories(ownerAffiliations: OWNER, isFork: false, first: 100) {
+          # fetch only selected affiliations & not forks
+          repositories(ownerAffiliations: $ownerAffiliations, isFork: false, first: 100) {
             nodes {
               name
+              owner {
+                login
+              }
               languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
                 edges {
                   size
@@ -63,6 +67,7 @@ const fetcher = (variables, token) => {
  * @param {string[]} exclude_repo List of repositories to exclude.
  * @param {number} size_weight Weightage to be given to size.
  * @param {number} count_weight Weightage to be given to count.
+ * @param {string[]} ownerAffiliations Owner affiliations filter (default ["OWNER"])
  * @returns {Promise<TopLangData>} Top languages data.
  */
 const fetchTopLanguages = async (
@@ -70,12 +75,19 @@ const fetchTopLanguages = async (
   exclude_repo = [],
   size_weight = 1,
   count_weight = 0,
+  ownerAffiliations = [],
+  exclude_org = [],
+  exclude_org_whitelist_repo = [],
 ) => {
   if (!username) {
     throw new MissingParamError(["username"]);
   }
 
-  const res = await retryer(fetcher, { login: username });
+  const parsedAffiliations = parseOwnerAffiliations(ownerAffiliations);
+  const res = await retryer(fetcher, {
+    login: username,
+    ownerAffiliations: parsedAffiliations,
+  });
 
   if (res.data.errors) {
     logger.error(res.data.errors);
@@ -111,7 +123,18 @@ const fetchTopLanguages = async (
   // filter out repositories to be hidden
   repoNodes = repoNodes
     .sort((a, b) => b.size - a.size)
-    .filter((name) => !repoToHide[name.name]);
+    .filter((repo) => {
+      // exclude_repo
+      if (repoToHide[repo.name]) return false;
+
+      // exclude_org with whitelist
+      if (exclude_org.includes(repo.owner.login)) {
+        if (!exclude_org_whitelist_repo.includes(repo.name)) {
+          return false;
+        }
+      }
+      return true;
+    });
 
   let repoCount = 0;
 

@@ -35,6 +35,9 @@ export default async (req, res) => {
     disable_animations,
     hide_progress,
     stats_format,
+    role,
+    exclude_org,
+    exclude_org_whitelist_repo,
   } = req.query;
   res.setHeader("Content-Type", "image/svg+xml");
 
@@ -102,6 +105,9 @@ export default async (req, res) => {
       parseArray(exclude_repo),
       size_weight,
       count_weight,
+      parseArray(role),
+      parseArray(exclude_org),
+      parseArray(exclude_org_whitelist_repo),
     );
 
     let cacheSeconds = clampValue(

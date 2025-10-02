@@ -40,6 +40,9 @@ export default async (req, res) => {
     border_color,
     rank_icon,
     show,
+    role,
+    exclude_org,
+    exclude_org_whitelist_repo,
   } = req.query;
   res.setHeader("Content-Type", "image/svg+xml");
 
@@ -100,6 +103,9 @@ export default async (req, res) => {
       showStats.includes("discussions_started"),
       showStats.includes("discussions_answered"),
       parseInt(commits_year, 10),
+      parseArray(role),
+      parseArray(exclude_org),
+      parseArray(exclude_org_whitelist_repo),
     );
 
     let cacheSeconds = clampValue(
