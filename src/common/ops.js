@@ -1,6 +1,9 @@
 // @ts-check
 
 import toEmoji from "emoji-name-map";
+import { CustomError } from "./error.js";
+
+const OWNER_AFFILIATIONS = ["OWNER", "COLLABORATOR", "ORGANIZATION_MEMBER"];
 
 /**
  * Returns boolean if value is either "true" or "false" else the value as it is.
@@ -113,6 +116,29 @@ const dateDiff = (d1, d2) => {
   return Math.round(diff / (1000 * 60));
 };
 
+/**
+ * Parse owner affiliations, default to ["OWNER"]; case insensitive; throw error for invalid values.
+ *
+ * @param {string[]} affiliations Array of affiliations.
+ * @returns {string[]} Parsed and validated affiliations.
+ * @throws {CustomError} If any affiliation is invalid.
+ */
+const parseOwnerAffiliations = (affiliations) => {
+  const normalized =
+    affiliations && affiliations.length > 0
+      ? affiliations.map((a) => String(a).toUpperCase())
+      : ["OWNER"];
+
+  const invalid = normalized.some((a) => !OWNER_AFFILIATIONS.includes(a));
+  if (invalid) {
+    throw new CustomError(
+      "Invalid query parameter",
+      CustomError.INVALID_AFFILIATION,
+    );
+  }
+  return normalized;
+};
+
 export {
   parseBoolean,
   parseArray,
@@ -121,4 +147,6 @@ export {
   chunkArray,
   parseEmojis,
   dateDiff,
+  parseOwnerAffiliations,
+  OWNER_AFFILIATIONS,
 };

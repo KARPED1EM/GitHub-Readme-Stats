@@ -10,19 +10,23 @@ import { excludeRepositories } from "../common/envs.js";
 import { CustomError, MissingParamError } from "../common/error.js";
 import { wrapTextMultiline } from "../common/fmt.js";
 import { request } from "../common/http.js";
+import { parseOwnerAffiliations } from "../common/ops.js";
 
 dotenv.config();
 
 // GraphQL queries.
 const GRAPHQL_REPOS_FIELD = `
-  repositories(first: 100, ownerAffiliations: OWNER, orderBy: {direction: DESC, field: STARGAZERS}, after: $after) {
+  repositories(first: 100, ownerAffiliations: $ownerAffiliations, orderBy: {direction: DESC, field: STARGAZERS}, after: $after) {
     totalCount
     nodes {
-      name
-      stargazers {
-        totalCount
+        name
+        owner {
+          login
+        }
+        stargazers {
+          totalCount
+        }
       }
-    }
     pageInfo {
       hasNextPage
       endCursor
@@ -31,7 +35,7 @@ const GRAPHQL_REPOS_FIELD = `
 `;
 
 const GRAPHQL_REPOS_QUERY = `
-  query userInfo($login: String!, $after: String) {
+  query userInfo($login: String!, $after: String, $ownerAffiliations: [RepositoryAffiliation]) {
     user(login: $login) {
       ${GRAPHQL_REPOS_FIELD}
     }
@@ -39,7 +43,7 @@ const GRAPHQL_REPOS_QUERY = `
 `;
 
 const GRAPHQL_STATS_QUERY = `
-  query userInfo($login: String!, $after: String, $includeMergedPullRequests: Boolean!, $includeDiscussions: Boolean!, $includeDiscussionsAnswers: Boolean!, $startTime: DateTime = null) {
+  query userInfo($login: String!, $after: String, $includeMergedPullRequests: Boolean!, $includeDiscussions: Boolean!, $includeDiscussionsAnswers: Boolean!, $startTime: DateTime = null, $ownerAffiliations: [RepositoryAffiliation]) {
     user(login: $login) {
       name
       login
@@ -107,6 +111,7 @@ const fetcher = (variables, token) => {
  * @param {boolean} variables.includeDiscussions Include discussions.
  * @param {boolean} variables.includeDiscussionsAnswers Include discussions answers.
  * @param {string|undefined} variables.startTime Time to start the count of total commits.
+ * @param {string[]} variables.ownerAffiliations Owner affiliations filter.
  * @returns {Promise<import('axios').AxiosResponse>} Axios response.
  *
  * @description This function supports multi-page fetching if the 'FETCH_MULTI_PAGE_STARS' environment variable is set to true.
@@ -117,6 +122,7 @@ const statsFetcher = async ({
   includeDiscussions,
   includeDiscussionsAnswers,
   startTime,
+  ownerAffiliations,
 }) => {
   let stats;
   let hasNextPage = true;
@@ -130,6 +136,7 @@ const statsFetcher = async ({
       includeDiscussions,
       includeDiscussionsAnswers,
       startTime,
+      ownerAffiliations,
     };
     let res = await retryer(fetcher, variables);
     if (res.data.errors) {
@@ -222,6 +229,9 @@ const totalCommitsFetcher = async (username) => {
  * @param {boolean} include_discussions Include discussions.
  * @param {boolean} include_discussions_answers Include discussions answers.
  * @param {number|undefined} commits_year Year to count total commits
+ * @param {string[]} ownerAffiliations Owner affiliations filter (default ["OWNER"])
+ * @param {string[]} exclude_org Organizations to exclude
+ * @param {string[]} exclude_org_whitelist_repo Repositories to whitelist from excluded organizations
  * @returns {Promise<import("./types").StatsData>} Stats data.
  */
 const fetchStats = async (
@@ -232,6 +242,9 @@ const fetchStats = async (
   include_discussions = false,
   include_discussions_answers = false,
   commits_year,
+  ownerAffiliations = [],
+  exclude_org = [],
+  exclude_org_whitelist_repo = [],
 ) => {
   if (!username) {
     throw new MissingParamError(["username"]);
@@ -252,12 +265,14 @@ const fetchStats = async (
     rank: { level: "C", percentile: 100 },
   };
 
+  const parsedAffiliations = parseOwnerAffiliations(ownerAffiliations);
   let res = await statsFetcher({
     username,
     includeMergedPullRequests: include_merged_pull_requests,
     includeDiscussions: include_discussions,
     includeDiscussionsAnswers: include_discussions_answers,
     startTime: commits_year ? `${commits_year}-01-01T00:00:00Z` : undefined,
+    ownerAffiliations: parsedAffiliations,
   });
 
   // Catch GraphQL errors.
@@ -315,12 +330,17 @@ const fetchStats = async (
   let repoToHide = new Set(allExcludedRepos);
 
   stats.totalStars = user.repositories.nodes
-    .filter((data) => {
-      return !repoToHide.has(data.name);
+    .filter((repo) => {
+      if (repoToHide.has(repo.name)) return false;
+
+      if (exclude_org.includes(repo.owner.login)) {
+        if (!exclude_org_whitelist_repo.includes(repo.name)) {
+          return false;
+        }
+      }
+      return true;
     })
-    .reduce((prev, curr) => {
-      return prev + curr.stargazers.totalCount;
-    }, 0);
+    .reduce((prev, curr) => prev + curr.stargazers.totalCount, 0);
 
   stats.rank = calculateRank({
     all_commits: include_all_commits,

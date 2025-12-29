@@ -106,6 +106,33 @@
 > [!IMPORTANT]
 > We're a small team, and to prioritize, we rely on upvotes :+1:. We use the Top Issues dashboard for tracking community demand (see [#1935](https://github.com/anuraghazra/github-readme-stats/issues/1935)). Do not hesitate to upvote the issues and pull requests you are interested in. We will work on the most upvoted first.
 
+# Extended Features <!-- omit in toc -->
+
+> [!NOTE]
+> This fork includes additional features for finer control over which repositories and organizations are included in your statistics.
+
+## Organization and Repository Filtering
+
+You can now control which repositories contribute to your statistics using three new parameters:
+
+- **`role`**: Control which repository affiliations are counted (`OWNER`, `COLLABORATOR`, `ORGANIZATION_MEMBER`)
+- **`exclude_org`**: Exclude all repositories from specific organizations
+- **`exclude_org_whitelist_repo`**: Create exceptions for specific repositories from excluded organizations
+
+**Example usage:**
+```md
+![GitHub Stats](https://your-instance.vercel.app/api?username=yourname&role=OWNER,COLLABORATOR,ORGANIZATION_MEMBER&exclude_org=orgname&exclude_org_whitelist_repo=important-repo)
+```
+
+This allows you to:
+- Include organization repositories in your stats by using `role=ORGANIZATION_MEMBER`
+- Exclude entire organizations while keeping specific important repositories
+- Get more accurate statistics that reflect your actual contributions
+
+For detailed parameter descriptions, see the [Stats Card Options](#stats-card-exclusive-options) and [Top Languages Card Options](#options-2) sections below.
+
+---
+
 # GitHub Stats Card
 
 Copy and paste this into your markdown, and that's it. Simple!
@@ -385,6 +412,12 @@ If we don't support your language, please consider contributing! You can find mo
 | `number_precision` | Enforce the number of digits after the decimal point for `short` number format. Must be an integer between 0 and 2. Will be ignored for `long` number format. | integer (0, 1 or 2) | `null` |
 | `show` | Shows [additional items](#showing-additional-individual-stats) on stats card (i.e. `reviews`, `discussions_started`, `discussions_answered`, `prs_merged` or `prs_merged_percentage`). | string (comma-separated values) | `null` |
 | `commits_year` | Filters and counts only commits made in the specified year. | integer _(YYYY)_ | `<current year> (one year to date)` |
+| `role` | Controls which repository affiliations are counted in statistics. Allowed values: `OWNER`, `COLLABORATOR`, `ORGANIZATION_MEMBER`. Values can be combined with commas. | string (comma-separated values) | `OWNER` |
+| `exclude_org` | Excludes repositories from specified organizations by login. | string (comma-separated values) | `null` |
+| `exclude_org_whitelist_repo` | Allows specific repositories from excluded organizations (acts as exception list). | string (comma-separated values) | `null` |
+
+> [!NOTE]
+> The `exclude_org` parameter excludes entire organizations, but `exclude_org_whitelist_repo` can be used to create exceptions for specific repositories from those organizations. For example: `exclude_org=myorg&exclude_org_whitelist_repo=myorg-core,myorg-utils` will exclude all repositories from `myorg` except `myorg-core` and `myorg-utils`.
 
 > [!WARNING]
 > Custom title should be URI-escaped, as specified in [Percent Encoding](https://en.wikipedia.org/wiki/Percent-encoding) (i.e: `Anurag's GitHub Stats` should become `Anurag%27s%20GitHub%20Stats`). You can use [urlencoder.org](https://www.urlencoder.org/) to help you do this automatically.
@@ -501,6 +534,12 @@ You can customize the appearance and behavior of the top languages card using th
 | `size_weight` | Configures language stats algorithm (see [Language stats algorithm](#language-stats-algorithm)). | integer | `1` |
 | `count_weight` | Configures language stats algorithm (see [Language stats algorithm](#language-stats-algorithm)). | integer | `0` |
 | `stats_format` | Switches between two available formats for language's stats `percentages` and `bytes`. | enum | `percentages` |
+| `role` | Controls which repository affiliations are counted in statistics. Allowed values: `OWNER`, `COLLABORATOR`, `ORGANIZATION_MEMBER`. Values can be combined with commas. | string (comma-separated values) | `OWNER` |
+| `exclude_org` | Excludes repositories from specified organizations by login. | string (comma-separated values) | `null` |
+| `exclude_org_whitelist_repo` | Allows specific repositories from excluded organizations (acts as exception list). | string (comma-separated values) | `null` |
+
+> [!NOTE]
+> The `exclude_org` parameter excludes entire organizations, but `exclude_org_whitelist_repo` can be used to create exceptions for specific repositories from those organizations. This works the same way as in the Stats Card.
 
 > [!WARNING]
 > Language names and custom title should be URI-escaped, as specified in [Percent Encoding](https://en.wikipedia.org/wiki/Percent-encoding) (i.e: `c++` should become `c%2B%2B`, `jupyter notebook` should become `jupyter%20notebook`, `Most Used Languages` should become `Most%20Used%20Languages`, etc.) You can use [urlencoder.org](https://www.urlencoder.org/) to help you do this automatically.

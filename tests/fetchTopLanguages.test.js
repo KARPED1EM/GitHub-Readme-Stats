@@ -17,18 +17,21 @@ const data_langs = {
         nodes: [
           {
             name: "test-repo-1",
+            owner: { login: "anuraghazra" },
             languages: {
               edges: [{ size: 100, node: { color: "#0f0", name: "HTML" } }],
             },
           },
           {
             name: "test-repo-2",
+            owner: { login: "anuraghazra" },
             languages: {
               edges: [{ size: 100, node: { color: "#0f0", name: "HTML" } }],
             },
           },
           {
             name: "test-repo-3",
+            owner: { login: "anuraghazra" },
             languages: {
               edges: [
                 { size: 100, node: { color: "#0ff", name: "javascript" } },
@@ -37,6 +40,7 @@ const data_langs = {
           },
           {
             name: "test-repo-4",
+            owner: { login: "anuraghazra" },
             languages: {
               edges: [
                 { size: 100, node: { color: "#0ff", name: "javascript" } },
